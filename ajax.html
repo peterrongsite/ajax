@@ -1,0 +1,187 @@
+{include file='Sections/Header.php'}
+
+<div class="page-wrapper">
+    <!-- Page Content-->
+    <div class="page-content">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card card-h-100">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">New Pricing List</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="routerForm" method="POST">
+                            <div class="card">
+                                <div class="card-header border-bottom-dashed">
+                                    <div class="d-flex align-items-center">
+                                        <h5 class="card-title mb-0 flex-grow-1"><i class="ri-router-line"></i> Add New Router</h5>
+                                        <div class="flex-shrink-0"></div>
+                                    </div>
+                                </div>
+                                <div class="card-body pt-0">
+                                    <div class="modal-body">
+                                        <input type="hidden" id="id-field">
+                                        <div class="mb-3">
+                                            <label for="lower_start" class="form-label">Lower Start</label>
+                                            <input type="text" name="lower_start" id="lower_start" class="form-control is-invalid" placeholder="Lower Start" aria-describedby="lower_start_error">
+                                            <div id="lower_start_error" class="invalid-feedback">Lower Start is required</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="upper_limit" class="form-label">Upper Limit</label>
+                                            <input type="text" name="upper_limit" id="upper_limit" class="form-control is-invalid" placeholder="Upper Limit" aria-describedby="upper_limit_error">
+                                            <div id="upper_limit_error" class="invalid-feedback">Upper Limit is required</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="amount" class="form-label">Amount</label>
+                                            <input type="text" name="amount" id="amount" class="form-control is-invalid" placeholder="Amount" aria-describedby="amount_error">
+                                            <div id="amount_error" class="invalid-feedback">Valid amount is required</div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <div class="hstack gap-2 justify-content-end">
+                                            <a href="http://localhost/cloud/routers/list" class="btn btn-danger">Cancel</a>
+                                            <button type="submit" class="btn btn-success" id="submitBtn"><i class="fas fa-save"></i> Save</button>
+                                            <button type="button" class="btn btn-success" id="loadingBtn" style="display: none;">
+                                                <span class="d-flex align-items-center">
+                                                    <span class="spinner-border flex-shrink-0" role="status">
+                                                        <span class="visually-hidden">Saving...</span>
+                                                    </span>
+                                                    <span class="flex-grow-1 ms-2">
+                                                        Saving...
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{include file='Sections/Footer.php'}
+
+<script>
+
+$(document).ready(function () {
+    // Clear validation errors on page load
+    $('#routerForm input').removeClass('is-invalid');
+    $('.invalid-feedback').text('');
+    $('#routerForm')[0].reset(); // Reset all form fields
+
+    function showError(element, message) {
+        element.addClass('is-invalid');
+        element.siblings('.invalid-feedback').text(message);
+    }
+
+    function clearErrors() {
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+    }
+
+    function validateForm() {
+        clearErrors();
+        let isValid = true;
+
+        const lower_start = $('#lower_start').val().trim();
+        const upper_limit = $('#upper_limit').val().trim();
+        const amount = $('#amount').val().trim();
+
+        if (lower_start === '') {
+            showError($('#lower_start'), 'Lower Start is required');
+            isValid = false;
+        }
+
+        if (upper_limit === '') {
+            showError($('#upper_limit'), 'Upper Limit is required');
+            isValid = false;
+        }
+
+        if (amount === '' || isNaN(amount) || Number(amount) <= 0 || Number(amount) > 655350000) {
+            showError($('#amount'), 'Valid amount is required');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    $('#routerForm').submit(function (event) {
+        event.preventDefault(); // Prevent form from submitting normally
+
+        if (validateForm()) {
+            $('#submitBtn').hide();
+            $('#loadingBtn').show();
+
+            $.ajax({
+                type: 'POST',
+                url: '{$appurl}/routers/create',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '{$appurl}/routers/list';
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Something went wrong. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                },
+                complete: function () {
+                    $('#submitBtn').show();
+                    $('#loadingBtn').hide();
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please correct the errors in the form.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+
+    $('#routerForm input').on('input', function () {
+        const field = $(this).attr('id');
+        const value = $(this).val().trim();
+
+        if (field === 'lower_start' && value === '') {
+            showError($('#lower_start'), 'Lower Start is required');
+        } else if (field === 'upper_limit' && value === '') {
+            showError($('#upper_limit'), 'Upper Limit is required');
+        } else if (field === 'amount' && (isNaN(value) || value <= 0 || value > 655350000)) {
+            showError($('#amount'), 'Valid amount is required');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('');
+        }
+    });
+});
+
+
+
+</script>
